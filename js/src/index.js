@@ -3,6 +3,7 @@ const path = require('path');
 
 const NSFW = require('../../build/Release/nsfw.node');
 
+/*
 function NSFWFilePoller(watchPath, eventCallback, debounceMS) {
   const { CREATED, DELETED, MODIFIED } = nsfw.actions;
   const directory = path.dirname(watchPath);
@@ -49,6 +50,7 @@ function NSFWFilePoller(watchPath, eventCallback, debounceMS) {
   this.pause = () => this.stop();
   this.resume = () => this.start();
 }
+*/
 
 
 const buildNSFW = async (watchPath, eventCallback, { debounceMS = 500, errorCallback: _errorCallback } = {}) => {
@@ -76,7 +78,25 @@ const buildNSFW = async (watchPath, eventCallback, { debounceMS = 500, errorCall
   if (stats.isDirectory()) {
     return new NSFW(watchPath, eventCallback, { debounceMS, errorCallback });
   } else if (stats.isFile()) {
-    return new NSFWFilePoller(watchPath, eventCallback, debounceMS);
+    //return new NSFWFilePoller(watchPath, eventCallback, debounceMS);
+
+    // Instead of using the poller, watch the parent directory and trigger the callback only if the
+    // event is specific to the given file.
+    const parentPath = path.resolve(path.dirname(watchPath));
+    const resolvedWatchPath = path.resolve(watchPath);
+
+    return new NSFW(parentPath, events => {
+      const fileEvents = [];
+      for (const event of events) {
+        const filePath = path.resolve(event.directory, event.file);
+        if (filePath === resolvedWatchPath) {
+          fileEvents.push(event);
+        }
+      }
+      if (fileEvents.length > 0) {
+        eventCallback(fileEvents);
+      }
+    }, { debounceMS, errorCallback });
   } else {
     throw new Error('Path must be a valid path to a file or a directory');
   }
