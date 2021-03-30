@@ -83,7 +83,7 @@ const buildNSFW = async (watchPath, eventCallback, { debounceMS = 500, errorCall
     const parentPath = path.resolve(path.dirname(watchPath));
     const resolvedWatchPath = path.resolve(watchPath);
 
-    return new NSFW(parentPath, events => {
+    return new NSFW(debounceMS, parentPath, events => {
       const fileEvents = [];
       for (const event of events) {
         const filePath = path.resolve(event.directory, event.file);
@@ -94,7 +94,7 @@ const buildNSFW = async (watchPath, eventCallback, { debounceMS = 500, errorCall
       if (fileEvents.length > 0) {
         eventCallback(fileEvents);
       }
-    }, { debounceMS, errorCallback });
+    }, errorCallback);
   } else {
     throw new Error('Path must be a valid path to a file or a directory');
   }
